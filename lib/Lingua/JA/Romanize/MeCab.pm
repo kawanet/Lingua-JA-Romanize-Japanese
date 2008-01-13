@@ -97,6 +97,9 @@ sub string {
 }
 
 sub dict_charset {
+    my $ver = $MeCab::VERSION;
+    $ver =~ s/[^\d\.].*$//;
+    Carp::croak "MeCab 0.94 or above is required ($ver)\n" if ( $ver < 0.94 );
     my $mecab = MeCab::Tagger->new() or Carp::croak "MeCab::Tagger->new() failed\n";
     my $dinfo = $mecab->dictionary_info() or Carp::croak "dictionary_info() failed\n";
     $dinfo->{charset} or Carp::croak "dictionary_info->{charset} failed\n";

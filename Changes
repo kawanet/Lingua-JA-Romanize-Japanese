@@ -3,8 +3,9 @@
 2008/01/13 (0.20)
     - L::J::R::Kana::Hepburn added
     - L::J::R::Base splited
-    - L::J::R::MeCab uses dictionary_info() method to see charset
-    - L::J::R::MeCab tested with mecab-perl-0.96.tar.gz
+    - L::J::R::MeCab uses dictionary_info() method to see charset.
+    - L::J::R::MeCab requires MeCab 0.94 or above.
+    - L::J::R::MeCab tested with MeCab 0.96.
     - all modules treats utf8 flag transparently
 
 2007/07/29 (0.15)
