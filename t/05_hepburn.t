@@ -3,9 +3,12 @@
     use Test::More;
 # ----------------------------------------------------------------
 {
+    local $@;
+    eval { require Lingua::JA::Hepburn::Passport; };
+    plan skip_all => "Lingua::JA::Hepburn::Passport is not available." if $@;
     plan tests => 10;
-    use_ok('Lingua::JA::Romanize::Kana');
-    my $roman = Lingua::JA::Romanize::Kana->new();
+    use_ok('Lingua::JA::Romanize::Kana::Hepburn');
+    my $roman = Lingua::JA::Romanize::Kana::Hepburn->new();
     &test_ja( $roman );
 }
 # ----------------------------------------------------------------

@@ -86,7 +86,8 @@ sub string {
         my $midasi = $self->to_utf8( $surface, $utf8 );
         my $feature = $node->{feature};
         $feature = $self->to_utf8( $feature, $utf8 ) if defined $feature;
-        my $kana = ( split( /,/, $feature ) )[5] if defined $feature;
+        my @feature = split( /,/, $feature ) if defined $feature;
+        my $kana = $feature[$#feature-1] if ( $#feature > 5 );
         my @array = $self->kana()->string($kana) if defined $kana;
         my $roman = join( "", map { $_->[1] } grep { $#$_ > 0 } @array ) if scalar @array;
         my $pair = $roman ? [ $midasi, $roman ] : [$midasi];

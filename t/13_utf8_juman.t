@@ -3,9 +3,10 @@
     use Test::More;
 # ----------------------------------------------------------------
 {
+    plan skip_all => "Perl 5.8.1 or better is required to test this" unless ( $] >= 5.008001 );
     my $juman = &load_juman();
     plan skip_all => $juman if $juman;
-    plan tests => 18;
+    plan tests => 22;
     use_ok('Lingua::JA::Romanize::Juman');
     my $roman = Lingua::JA::Romanize::Juman->new();
     &test_ja( $roman );
@@ -17,7 +18,7 @@ sub load_juman {
     return "Juman.pm is not available." if $@;
     my $found;
     foreach my $path ( split( /:/, $ENV{PATH} )) {
-        my $test = "$path/juman";
+		my $test = "$path/juman";
         $found = $test if ( -x $test );
     }
     if ( ! $found && ! $ENV{JUMANSERVER} ) {
@@ -29,6 +30,7 @@ sub load_juman {
 sub read_data {
     local $/ = undef;
     my $all = <DATA>;
+    utf8::decode( $all );
     my $hash = { split( /\s+/, $all ) };
     $hash;
 }
@@ -38,8 +40,8 @@ sub test_ja {
     ok( ref $roman, "new" );
 
     my $t = &read_data();
-#   ok( utf8::is_utf8($t->{phrase1}), "source: phrase1 utf8 flaged" );
-#   ok( utf8::is_utf8($t->{phrase2}), "source: phrase2 utf8 flaged" );
+    ok( utf8::is_utf8($t->{phrase1}), "source: phrase1 utf8 flaged" );
+    ok( utf8::is_utf8($t->{phrase2}), "source: phrase2 utf8 flaged" );
 
     my $c1 = $roman->char($t->{a});
     ok( ! defined $c1, "char: ascii" );
@@ -83,14 +85,14 @@ sub test_ja {
     my @u1 = $roman->string($t->{phrase1});
     like( $u1[0]->[1], qr/^u/, "string: phrase1 u..." );
     like( $u1[$#u1]->[1], qr/go$/, "string: phrase1 ...go" );
-#   my $u1 = scalar { grep { ! utf8::is_utf8($_->[0]) } @u1 };
-#   ok( $u1 >= 2, "string: phrase1 utf8 flaged" );
+    my $u1 = scalar { grep { ! utf8::is_utf8($_->[0]) } @u1 };
+    ok( $u1 >= 2, "string: phrase1 utf8 flaged" );
     my $j1 = join( "", map {$_->[0]} @u1 );
     is( $j1, $t->{phrase1}, "string: phrase1 round trip" );
 
     my @u2 = $roman->string($t->{phrase2});
-#   my $u2 = scalar { grep { ! utf8::is_utf8($_->[0]) } @u2 };
-#   ok( $u2 >= 6, "string: phrase2 utf8 flaged" );
+    my $u2 = scalar { grep { ! utf8::is_utf8($_->[0]) } @u2 };
+    ok( $u2 >= 6, "string: phrase2 utf8 flaged" );
     my $j2 = join( "", map {$_->[0]} @u2 );
     is( $j2, $t->{phrase2}, "string: phrase2 round trip" );
 }
