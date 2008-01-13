@@ -32,7 +32,7 @@ This constructer methods returns a new object with its dictionary cached.
 
 =head2 $roman = $conv->char( $Kana );
 
-This method returns romanized letters of a Kana character.
+This method returns romanized letters from a Kana character.
 It returns undef when $Kana is not a valid Kana character.
 The argument's encoding must be UTF-8.
 Both of Hiragana or Katakana characters are allowed.
@@ -41,7 +41,7 @@ See L<Lingua::JA::Romanize::Japanese>.
 
 =head2 $roman = $conv->chars( $string );
 
-This method returns romanized letters of Kana characters.
+This method returns romanized letters from multiple Kana characters.
 
 =head2 @array = $conv->string( $string );
 
@@ -52,23 +52,28 @@ which are pairs of a Kana chacater and its romanized letters.
     $array[1][0]        # secound Kana character itself
     $array[1][1]        # its romanized letters
 
+=head1 UTF-8 FLAG
+
+This treats utf8 flag transparently.
+
 =head1 SEE ALSO
 
 L<Lingua::JA::Romanize::Japanese>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2006 Yusuke Kawasaki. All rights reserved.
-
-This program is free software; you can redistribute it
-and/or modify it under the same terms as Perl itself.
+Copyright (c) 2006-2008 Yusuke Kawasaki. All rights reserved.
+This program is free software; you can redistribute it and/or 
+modify it under the same terms as Perl itself.
 
 =cut
 # ----------------------------------------------------------------
 package Lingua::JA::Romanize::Kana;
 use strict;
+use base qw( Lingua::JA::Romanize::Base );
 use vars qw( $VERSION );
-$VERSION = "0.13";
+$VERSION = "0.20";
+my $PERL581 = 1 if ( $] >= 5.008001 );
 
 my $KANA_MAP = [
     qw(
@@ -82,13 +87,6 @@ my $KANA_MAP = [
 ];
 
 # ----------------------------------------------------------------
-sub new {
-    my $package = shift;
-    my $self    = {@_};
-    bless $self, $package;
-    $self;
-}
-
 sub char {
     my $self = shift;
     my $char = shift;
@@ -103,13 +101,23 @@ sub char {
     $KANA_MAP->[$offset];
 }
 
-sub chars {
-    my $self  = shift;
-    my @array = $self->string(shift);
-    join( "", map { $#$_ > 0 ? $_->[1] : $_->[0] } @array );
+sub string {
+    my $self = shift;
+    return $self->_string(@_) unless $PERL581;
+    my $char = shift;
+    my $utf8 = utf8::is_utf8( $char );
+    utf8::encode( $char ) if $utf8;
+    my @array = $self->_string( $char );
+    if ( $utf8 ) {
+        foreach my $pair ( @array ) {
+            utf8::decode( $pair->[0] ) if defined $pair->[0];
+            utf8::decode( $pair->[1] ) if defined $pair->[1];
+        }
+    }
+    @array;
 }
 
-sub string {
+sub _string {
     my $self  = shift;
     my $src   = shift;
     my $array = [];

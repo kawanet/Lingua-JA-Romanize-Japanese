@@ -1,5 +1,12 @@
 # Lingua::JA::Romanize::* modules Changes
 
+2008/01/13 (0.20)
+    - L::J::R::Kana::Hepburn added
+    - L::J::R::Base splited
+    - L::J::R::MeCab uses dictionary_info() method to see charset
+    - L::J::R::MeCab tested with mecab-perl-0.96.tar.gz
+    - all modules treats utf8 flag transparently
+
 2007/07/29 (0.15)
     - L::J::R::DictJA uses ExtUtils::MakeMaker::prompt().
     - L::J::R::Japanese changes its internal HASH structure.

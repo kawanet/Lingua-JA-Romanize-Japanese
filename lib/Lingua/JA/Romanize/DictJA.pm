@@ -13,7 +13,7 @@ L<Lingua::JA::Romanize::Japanese> module.
 
 Source dictionary file per default: (included in this package)
 
-    http://openlab.jp/skk/dic/SKK-JISYO.S.gz
+    http://openlab.jp/skk/skk/dic/SKK-JISYO.S
 
 Optional/external dictionary files:
 
@@ -33,8 +33,8 @@ on installing this package.
 =head1 REQUIRED MODULES
 
 L<DB_File> module is required to create cached dictionary files.
-L<Jcode> module is required on Perl 5.005 and 5.6.x to install
-this package. L<Encode> module is used on Perl 5.8.x.
+L<Jcode> module is required on Perl 5.8.0 or less to install
+this package. L<Encode> module is used on Perl 5.8.1 or above.
 L<LWP::UserAgent> module is optional and used to fetch external
 dictionary files.
 L<IO::Zlib> module is optional and used to parse gzipped files.
@@ -43,13 +43,11 @@ L<IO::Zlib> module is optional and used to parse gzipped files.
 
 L<Lingua::JA::Romanize::Japanese>
 
-=head1 AUTHOR
+=head1 COPYRIGHT AND LICENSE
 
-Yusuke Kawasaki, http://www.kawa.net/
-
-=head1 COPYRIGHT
-
-Copyright (c) 2006-2007 Yusuke Kawasaki. All rights reserved.
+Copyright (c) 2006-2008 Yusuke Kawasaki. All rights reserved.
+This program is free software; you can redistribute it and/or 
+modify it under the same terms as Perl itself.
 
 =cut
 # ----------------------------------------------------------------
@@ -62,10 +60,7 @@ use ExtUtils::MakeMaker;
 use Fcntl;
 use IO::File;
 
-my $USE_ENCODE_PM = ( $] >= 5.008 );    # Perl 5.8.x auto detect
-# $USE_ENCODE_PM = 1;                   # force to use Encode.pm
-# $USE_ENCODE_PM = 0;                   # force to use Jcode.pm
-
+my $PERL581 = 1 if ( $] >= 5.008001 );
 my $FETCH_CACHE = "skk";
 my $DICT_DB     = 'Japanese.bdb';
 my $DIC_SMALL   = [ qw(
@@ -117,7 +112,7 @@ sub update {
     print "Loading module: IO::Zlib\n";
     &require_io_zlib();
 
-    if ($USE_ENCODE_PM) {
+    if ($PERL581) {
         print "Loading module: Encode.pm\n";
         &require_encode();    # Perl 5.8.x
     }
@@ -236,7 +231,7 @@ sub read_skk_jisyo {
         chomp $line;
 
         # convert encoding from EUC-JP to UTF-8
-        if ($USE_ENCODE_PM) {
+        if ($PERL581) {
             Encode::from_to( $line, "EUC-JP", "UTF-8" );
         }
         else {
@@ -247,6 +242,7 @@ sub read_skk_jisyo {
         next unless ( $kana =~ /\W/ );    # roman only entry
         my $okuri = $1 if ( $kana =~ s/(?<=\W)(\w)$// );
         my $roman = $conv->chars($kana) or next;
+        $roman =~ s/\s+//g;
         next if ( $roman =~ /\W/ );       # kigou
 
         foreach my $kanji ( grep { $_ ne "" } split( "/", $slash ) ) {

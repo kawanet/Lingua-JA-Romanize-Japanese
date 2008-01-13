@@ -35,14 +35,14 @@ This constructer methods returns a new object with its dictionary cached.
 
 =head2 $roman = $conv->char( $kanji );
 
-This method returns romanized letters of a Japanese character.
+This method returns romanized letters from a Japanese character.
 It returns undef when $Kana is not a valid Japanese character.
 The argument's encoding must be UTF-8.
 Both of Kanji and Kana characters are allowed.
 
 =head2 $roman = $conv->chars( $string );
 
-This method returns romanized letters of Japanese characters.
+This method returns romanized letters from multiple Japanese characters.
 
 =head2 @array = $conv->string( $string );
 
@@ -60,6 +60,10 @@ the dictionary of SKK which is a Japanese input method on Emacs.
 It was designed by Dr. Masahiko Sato and created in 1987.
 SKK is an abbreviation of 'Simple Kana to Kanji conversion program'.
 
+=head1 UTF-8 FLAG
+
+This treats utf8 flag transparently.
+
 =head1 MODULE DEPENDENCIES
 
 L<DB_File> module is required.
@@ -67,8 +71,6 @@ L<DB_File> module is required.
 =head1 SEE ALSO
 
 L<Lingua::JA::Romanize::Kana>
-L<Lingua::JA::Romanize::Juman>
-L<Lingua::JA::Romanize::MeCab>
 L<Lingua::ZH::Romanize::Pinyin>
 L<Lingua::KO::Romanize::Hangul>
 
@@ -82,7 +84,7 @@ Yusuke Kawasaki http://www.kawa.net/
 
 =head1 COPYRIGHT
 
-Copyright (c) 2006-2007 Yusuke Kawasaki. All rights reserved.
+Copyright (c) 2006-2008 Yusuke Kawasaki. All rights reserved.
 
 =head1 LICENSE
 
@@ -98,9 +100,9 @@ use strict;
 use Carp;
 use DB_File;
 use Fcntl;
-use Lingua::JA::Romanize::Kana;
+use base qw( Lingua::JA::Romanize::Base );
 use vars qw( $VERSION );
-$VERSION = "0.15";
+$VERSION = "0.20";
 
 my $LINE_MAP = [
     qw(
@@ -113,41 +115,52 @@ my $LINE_MAP = [
       )
 ];
 my $DICT_DB = 'Japanese.bdb';
+my $PERL581 = 1 if ( $] >= 5.008001 );
 
 # ----------------------------------------------------------------
 sub new {
     my $package = shift;
     my $self = {};
-    $self->{file} = shift || &_detect_sdbm($package);
-    $self->{kana} = Lingua::JA::Romanize::Kana->new();
-
-    Carp::croak "$! - $self->{file}\n" unless ( -r $self->{file} );
-    my $dict  = {};
-    my $flags = Fcntl::O_RDONLY();
-    my $mode  = 0644;
-    my $btree = DB_File::BTREEINFO->new();
-    tie( %$dict, 'DB_File', $self->{file}, $flags, $mode, $btree )
-      or Carp::croak "$! - $self->{file}\n";
-    $self->{dict} = $dict;
-
     bless $self, $package;
+    $self->{dict} = $self->_open_dict(@_);
     $self;
 }
 
 sub char {
     my $self = shift;
+    return $self->_char(@_) unless $PERL581;
     my $char = shift;
-    return $self->{dict}->{$char} if ( exists $self->{dict}->{$char} && $self->{dict}->{$char} ne "" );
-    $self->{kana}->char($char);
+    my $utf8 = utf8::is_utf8( $char );
+    utf8::encode( $char ) if $utf8;
+    $char = $self->_char( $char );
+    utf8::decode( $char ) if $utf8;
+    $char;
 }
 
-sub chars {
-    my $self  = shift;
-    my @array = $self->string(shift);
-    join( " ", map { $#$_ > 0 ? $_->[1] : $_->[0] } @array );
+sub _char {
+    my $self = shift;
+    my $char = shift;
+    return $self->{dict}->{$char} if ( exists $self->{dict}->{$char} && $self->{dict}->{$char} ne "" );
+    $self->kana()->char($char);
 }
 
 sub string {
+    my $self = shift;
+    return $self->_string(@_) unless $PERL581;
+    my $char = shift;
+    my $flag = utf8::is_utf8( $char );
+    utf8::encode( $char ) if $flag;
+    my @array = $self->_string( $char );
+    if ( $flag ) {
+        foreach my $pair ( @array ) {
+            utf8::decode( $pair->[0] ) if defined $pair->[0];
+            utf8::decode( $pair->[1] ) if defined $pair->[1];
+        }
+    }
+    @array;
+}
+
+sub _string {
     my $self  = shift;
     my $src   = shift;
     my $array = [];
@@ -165,7 +178,7 @@ sub string {
             if ( $split->[0] =~ /^\xE3/ ) {
                 my $kana  = shift @$split;
                 my $pair  = [$kana];
-                my $roman = $self->{kana}->char($kana);
+                my $roman = $self->kana()->char($kana);
                 $pair->[1] = $roman if defined $roman;
                 push( @$array, $pair );
                 next;
@@ -204,7 +217,7 @@ sub string {
         }
     }
 
-    $self->{kana}->normalize($array);
+    $self->kana()->normalize($array);
 }
 
 sub _kana_line {
@@ -220,9 +233,21 @@ sub _kana_line {
     $LINE_MAP->[$offset];
 }
 
-#   module name to dictionary file path
-sub _detect_sdbm {
-    my $package = shift;
+sub _open_dict {
+    my $self = shift;
+    my $file = shift || $self->_detect_dict();
+    Carp::croak "$! - $file\n" unless ( -r $file );
+    my $dict  = {};
+    my $flags = Fcntl::O_RDONLY();
+    my $mode  = 0644;
+    my $btree = DB_File::BTREEINFO->new();
+    tie( %$dict, 'DB_File', $file, $flags, $mode, $btree )
+      or Carp::croak "$! - $file\n";
+    $dict;
+}
+
+sub _detect_dict {
+    my $package = __PACKAGE__;
     my $dbfile = $INC{ join( "/", split( "::", "$package.pm" ) ) };
     $dbfile =~ s#[^/]+$#$DICT_DB#
       or Carp::croak "Invalid module name: $package\n";

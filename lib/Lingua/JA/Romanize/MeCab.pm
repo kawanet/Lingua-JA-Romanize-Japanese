@@ -22,14 +22,12 @@ Lingua::JA::Romanize::MeCab - Romanization of Japanese language with MeCab
 
 =head1 DESCRIPTION
 
-This is MeCab version of L<Lingua::JA::Romanize::Japanese> module.
-MeCab's Perl binding, MeCab.pm, is required.
+This is a MeCab version of L<Lingua::JA::Romanize::Japanese> module.
+This requires MeCab.pm module which is distributed in mecab-perl-0.xx.tar.gz package.
 
-=head1 UTF-8 DICTIONARY
+=head1 UTF-8 FLAG
 
-If MeCab's dictionary is generated with UTF8, --with-charset=utf8,
-use Lingua::JA::Romanize::MeCab::UTF8->new()
-instead of Lingua::JA::Romanize::MeCab->new().
+This treats utf8 flag transparently.
 
 =head1 SEE ALSO
 
@@ -37,13 +35,9 @@ L<Lingua::JA::Romanize::Japanese>
 
 http://mecab.sourceforge.jp/ (Japanese)
 
-=head1 AUTHOR
-
-Yusuke Kawasaki, http://www.kawa.net/
-
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2006-2007 Yusuke Kawasaki. All rights reserved.
+Copyright (c) 2006-2008 Yusuke Kawasaki. All rights reserved.
 This program is free software; you can redistribute it and/or 
 modify it under the same terms as Perl itself.
 
@@ -53,76 +47,92 @@ package Lingua::JA::Romanize::MeCab;
 use strict;
 use Carp;
 use MeCab;
-use Lingua::JA::Romanize::Kana;
+use base qw( Lingua::JA::Romanize::Base );
 use vars qw( $VERSION );
-$VERSION = "0.15";
+$VERSION = "0.20";
 
 # ----------------------------------------------------------------
 sub new {
     my $package = shift;
     my $self    = {};
-    &require_encode_or_jcode();
-    $self->{mecab} = MeCab::Tagger->new(@_);
-    $self->{kana}  = Lingua::JA::Romanize::Kana->new();
-    $self->{jcode} = Jcode->new("") unless ( $] > 5.008 );
     bless $self, $package;
+    $self->require_encode_or_jcode();
+    $self->{mecab} = MeCab::Tagger->new(@_);
     $self;
 }
 
 sub char {
     my $self  = shift;
     my $src   = shift;
-    my $roman = $self->{kana}->char($src);
+    my $roman = $self->kana()->char($src);
     return $roman if $roman;
-    my $pair =
-      ( $self->string($src) )[0];    # need loop for nodes which have surface
+    my $pair = ( $self->string($src) )[0];    # need loop for nodes which have surface
     return if ( scalar @$pair == 1 );
     return $pair->[1];
 }
 
-sub chars {
-    my $self  = shift;
-    my @array = $self->string(shift);
-    join( " ", map { $#$_ > 0 ? $_->[1] : $_->[0] } @array );
-}
-
 sub string {
-    my $self  = shift;
-    my $src   = $self->from_utf8(shift);
+    my $self = shift;
+    my $src  = shift;
+    my $utf8;
+    ( $src, $utf8 ) = $self->from_utf8($src);
     my $array = [];
 
     my $node = $self->{mecab}->parseToNode($src);
     for ( ; $node ; $node = $node->{next} ) {
-        next unless defined $node->{surface};
-    next unless length( $node->{surface} );
-        my $midasi = $self->to_utf8( $node->{surface} );
-        my $kana = ( split( /,/, $node->{feature} ) )[7];
-        $kana = $self->to_utf8($kana) if defined $kana;
-        my @array = $self->{kana}->string($kana) if $kana;
-        my $roman = join( "", map { $_->[1] } grep { $#$_ > 0 } @array )
-          if scalar @array;
+        my $surface = $node->{surface};
+        next unless defined $surface;
+        next unless length( $surface );
+        my $midasi = $self->to_utf8( $surface, $utf8 );
+        my $feature = $node->{feature};
+        $feature = $self->to_utf8( $feature, $utf8 ) if defined $feature;
+        my $kana = ( split( /,/, $feature ) )[5] if defined $feature;
+        my @array = $self->kana()->string($kana) if defined $kana;
+        my $roman = join( "", map { $_->[1] } grep { $#$_ > 0 } @array ) if scalar @array;
         my $pair = $roman ? [ $midasi, $roman ] : [$midasi];
         push( @$array, $pair );
     }
 
-    $self->{kana}->normalize($array);
+    $self->kana()->normalize($array);
 }
 
-sub require_encode_or_jcode {
-    if ( $] > 5.008 ) {
-        return if defined $Encode::VERSION;
-        require Encode;
-    }
-    else {
-        return if defined $Jcode::VERSION;
-        local $@;
-        eval { require Jcode; };
-        Carp::croak "Jcode.pm is required on Perl $]\n" if $@;
-    }
+sub dict_charset {
+    my $mecab = MeCab::Tagger->new() or Carp::croak "MeCab::Tagger->new() failed\n";
+    my $dinfo = $mecab->dictionary_info() or Carp::croak "dictionary_info() failed\n";
+    $dinfo->{charset} or Carp::croak "dictionary_info->{charset} failed\n";
 }
 
-*from_utf8 = \&Lingua::JA::Romanize::MeCab::EUC::from_utf8;
-*to_utf8 = \&Lingua::JA::Romanize::MeCab::EUC::to_utf8;
+sub dict_jcode {
+    my $self = shift;
+    return $self->{dict_jcode} if $self->{dict_jcode};
+    my $charset = &dict_charset();
+    if ( $charset =~ /^euc/i ) {
+        $self->{dict_jcode} = 'euc';
+    }
+    elsif ( $charset =~ /^s(hift)?[\_\-]?jis/i ) {
+        $self->{dict_jcode} = 'sjis';
+    }
+    elsif ( $charset =~ /^utf-?8/i ) {
+        $self->{dict_jcode} = 'utf8';
+    }
+    $self->{dict_jcode};
+}
+
+sub dict_encode {
+    my $self = shift;
+    return $self->{dict_encode} if $self->{dict_encode};
+    my $charset = &dict_charset();
+    if ( $charset =~ /^euc/i ) {
+        $self->{dict_encode} = 'EUC-JP';
+    }
+    elsif ( $charset =~ /^s(hift)?[\_\-]?jis/i ) {
+        $self->{dict_encode} = 'CP932';
+    }
+    elsif ( $charset =~ /^utf-?8/i ) {
+        $self->{dict_encode} = 'utf8';
+    }
+    $self->{dict_encode};
+}
 
 # ----------------------------------------------------------------
 package Lingua::JA::Romanize::MeCab::UTF8;
@@ -130,13 +140,8 @@ use strict;
 use vars qw( @ISA );
 @ISA = qw( Lingua::JA::Romanize::MeCab );
 
-sub from_utf8 {
-    $_[1];              # no need to encode
-}
-
-sub to_utf8 {
-    $_[1];              # no need to decode
-}
+sub dict_jcode { 'utf8'; }
+sub dict_encode { 'utf8'; }
 
 # ----------------------------------------------------------------
 package Lingua::JA::Romanize::MeCab::EUC;
@@ -144,29 +149,8 @@ use strict;
 use vars qw( @ISA );
 @ISA = qw( Lingua::JA::Romanize::MeCab );
 
-sub from_utf8 {
-    my $self = shift;
-    my $src  = shift;
-    if ( $] > 5.008 ) {
-        Encode::from_to( $src, "UTF-8", "EUC-JP" );
-    }
-    else {
-        $src = $self->{jcode}->set( \$src, "utf8" )->euc();
-    }
-    $src;
-}
-
-sub to_utf8 {
-    my $self = shift;
-    my $src  = shift;
-    if ( $] > 5.008 ) {
-        Encode::from_to( $src, "EUC-JP", "UTF-8" );
-    }
-    else {
-        $src = $self->{jcode}->set( \$src, "euc" )->utf8();
-    }
-    $src;
-}
+sub dict_jcode { 'euc'; }
+sub dict_encode { 'EUC-JP'; }
 
 # ----------------------------------------------------------------
 package Lingua::JA::Romanize::MeCab::SJIS;
@@ -174,29 +158,8 @@ use strict;
 use vars qw( @ISA );
 @ISA = qw( Lingua::JA::Romanize::MeCab );
 
-sub from_utf8 {
-    my $self = shift;
-    my $src  = shift;
-    if ( $] > 5.008 ) {
-        Encode::from_to( $src, "UTF-8", "CP932" );
-    }
-    else {
-        $src = $self->{jcode}->set( \$src, "utf8" )->sjis();
-    }
-    $src;
-}
-
-sub to_utf8 {
-    my $self = shift;
-    my $src  = shift;
-    if ( $] > 5.008 ) {
-        Encode::from_to( $src, "CP932", "UTF-8" );
-    }
-    else {
-        $src = $self->{jcode}->set( \$src, "sjis" )->utf8();
-    }
-    $src;
-}
+sub dict_jcode { 'sjis'; }
+sub dict_encode { 'CP932'; }
 
 # ----------------------------------------------------------------
 1;
