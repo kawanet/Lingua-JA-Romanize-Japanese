@@ -1,6 +1,12 @@
 # Lingua::JA::Romanize::* modules Changes
 
+2008/01/14 (0.21)
+    - L::J::R::Kana updated to pass test on Perl 5.10.0
+      http://kawa.at.webry.info/200801/article_11.html
+
 2008/01/13 (0.20)
+    - Subversion on Google Code Project Hosting
+      http://linuga-romanize.googlecode.com/svn/trunk/Lingua-JA-Romanize-Japanese/
     - L::J::R::Kana::Hepburn added
     - L::J::R::Base splited
     - L::J::R::MeCab uses dictionary_info() method to see charset.
