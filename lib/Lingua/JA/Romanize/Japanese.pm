@@ -102,7 +102,7 @@ use DB_File;
 use Fcntl;
 use base qw( Lingua::JA::Romanize::Base );
 use vars qw( $VERSION );
-$VERSION = "0.20";
+$VERSION = "0.21";
 
 my $LINE_MAP = [
     qw(
@@ -129,12 +129,13 @@ sub new {
 sub char {
     my $self = shift;
     return $self->_char(@_) unless $PERL581;
-    my $char = shift;
-    my $utf8 = utf8::is_utf8( $char );
-    utf8::encode( $char ) if $utf8;
-    $char = $self->_char( $char );
-    utf8::decode( $char ) if $utf8;
-    $char;
+    my $src = shift;
+    my $utf8 = utf8::is_utf8( $src );
+    utf8::encode( $src ) if $utf8;
+    my $out = $self->_char( $src );
+    return unless defined $out;
+    utf8::decode( $out ) if $utf8;
+    $out;
 }
 
 sub _char {
