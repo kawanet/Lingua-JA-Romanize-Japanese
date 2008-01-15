@@ -70,11 +70,13 @@ L<DB_File> module is required.
 
 =head1 SEE ALSO
 
-L<Lingua::JA::Romanize::Kana>
-L<Lingua::ZH::Romanize::Pinyin>
-L<Lingua::KO::Romanize::Hangul>
+L<Lingua::ZH::Romanize::Pinyin> for romanization of Standard Chinese
+
+L<Lingua::KO::Romanize::Hangul> for romanization of Korean
 
 http://www.kawa.net/works/perl/romanize/romanize-e.html
+
+http://linuga-romanize.googlecode.com/svn/trunk/Lingua-JA-Romanize-Japanese/
 
 http://openlab.jp/skk/
 
@@ -102,7 +104,7 @@ use DB_File;
 use Fcntl;
 use base qw( Lingua::JA::Romanize::Base );
 use vars qw( $VERSION );
-$VERSION = "0.21";
+$VERSION = "0.22";
 
 my $LINE_MAP = [
     qw(

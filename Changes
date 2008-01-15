@@ -1,5 +1,10 @@
 # Lingua::JA::Romanize::* modules Changes
 
+2008/01/15 (0.22)
+    - Makefile.PL updated to skip error on DictJA->update()
+      http://cpantesters.perl.org/show/Lingua-JA-Romanize-Japanese.html#Lingua-JA-Romanize-Japanese-0.21
+    - Use of uninitialized value in unpack at Kana.pm
+
 2008/01/14 (0.21)
     - L::J::R::Kana updated to pass test on Perl 5.10.0
       http://kawa.at.webry.info/200801/article_11.html

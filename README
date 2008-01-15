@@ -60,10 +60,14 @@ MODULE DEPENDENCIES
     DB_File module is required.
 
 SEE ALSO
-    Lingua::JA::Romanize::Kana Lingua::ZH::Romanize::Pinyin
-    Lingua::KO::Romanize::Hangul
+    Lingua::ZH::Romanize::Pinyin for romanization of Standard Chinese
+
+    Lingua::KO::Romanize::Hangul for romanization of Korean
 
     http://www.kawa.net/works/perl/romanize/romanize-e.html
+
+    http://linuga-romanize.googlecode.com/svn/trunk/Lingua-JA-Romanize-Japan
+    ese/
 
     http://openlab.jp/skk/
 

@@ -72,7 +72,7 @@ package Lingua::JA::Romanize::Kana;
 use strict;
 use base qw( Lingua::JA::Romanize::Base );
 use vars qw( $VERSION );
-$VERSION = "0.21";
+$VERSION = "0.22";
 my $PERL581 = 1 if ( $] >= 5.008001 );
 
 my $KANA_MAP = [
@@ -91,6 +91,7 @@ sub char {
     my $self = shift;
     return $self->_char(@_) unless $PERL581;
     my $src = shift;
+	return undef unless defined $src;
     my $utf8 = utf8::is_utf8( $src );
     utf8::encode( $src ) if $utf8;
     my $out = $self->_char( $src );
@@ -103,6 +104,7 @@ sub char {
 sub _char {
     my $self = shift;
     my $char = shift;
+	return undef unless defined $char;
     my ( $c1, $c2, $c3, $c4 ) = unpack( "C*", $char );
     return if ( !defined $c3 || defined $c4 );
     my $ucs2 =
