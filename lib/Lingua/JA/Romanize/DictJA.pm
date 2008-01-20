@@ -46,7 +46,7 @@ L<Lingua::JA::Romanize::Japanese>
 =head1 COPYRIGHT AND LICENSE
 
 Copyright (c) 2006-2008 Yusuke Kawasaki. All rights reserved.
-This program is free software; you can redistribute it and/or 
+This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
 
 =cut
@@ -54,7 +54,7 @@ modify it under the same terms as Perl itself.
 package Lingua::JA::Romanize::DictJA;
 use strict;
 use vars qw( $VERSION );
-$VERSION = "0.13";
+$VERSION = "0.23";
 use Lingua::JA::Romanize::Kana;
 use ExtUtils::MakeMaker;
 use Fcntl;
@@ -67,24 +67,26 @@ my $DIC_SMALL   = [ qw(
     skk/SKK-JISYO.S
 ) ];
 my $DIC_LARGE = [ qw(
-      http://openlab.jp/skk/skk/dic/SKK-JISYO.L
-      http://openlab.jp/skk/skk/dic/SKK-JISYO.jinmei
-      http://openlab.jp/skk/skk/dic/SKK-JISYO.propernoun
-      http://openlab.jp/skk/skk/dic/SKK-JISYO.geo
-      http://openlab.jp/skk/skk/dic/SKK-JISYO.station
+    http://openlab.jp/skk/skk/dic/SKK-JISYO.L
+    http://openlab.jp/skk/skk/dic/SKK-JISYO.jinmei
+    http://openlab.jp/skk/skk/dic/SKK-JISYO.propernoun
+    http://openlab.jp/skk/skk/dic/SKK-JISYO.geo
+    http://openlab.jp/skk/skk/dic/SKK-JISYO.station
 ) ];
 my $DIC_GZIPED = [ qw(
-      http://openlab.jp/skk/dic/SKK-JISYO.L.gz
-      http://openlab.jp/skk/dic/SKK-JISYO.jinmei.gz
-      http://openlab.jp/skk/dic/SKK-JISYO.propernoun.gz
-      http://openlab.jp/skk/dic/SKK-JISYO.geo.gz
-      http://openlab.jp/skk/dic/SKK-JISYO.station.gz
+    http://openlab.jp/skk/dic/SKK-JISYO.L.gz
+    http://openlab.jp/skk/dic/SKK-JISYO.jinmei.gz
+    http://openlab.jp/skk/dic/SKK-JISYO.propernoun.gz
+    http://openlab.jp/skk/dic/SKK-JISYO.geo.gz
+    http://openlab.jp/skk/dic/SKK-JISYO.station.gz
 ) ];
 
 # ----------------------------------------------------------------
 sub update {
     my $package = shift;
     my $base    = shift;
+    print "Updater: ", __PACKAGE__, " (", $VERSION, ")\n";
+
     unless ( defined $base ) {
         $base = $INC{ join( "/", split( "::", (__PACKAGE__) . ".pm" ) ) };
         $base =~ s#/[^/]*$##;
@@ -101,6 +103,8 @@ sub update {
             print "Canceled to update the dictionary.\n";
             return;
         }
+    } else {
+        print "Path: ", $dbpath, "\n";
     }
 
     print "Loading module: DB_File.pm\n";
